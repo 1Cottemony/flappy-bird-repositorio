@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>flap</title>
+    <link rel="stylesheet" href="passaro_style.css">
+  </head>
+  <body>
+
+    <!-- elementos -->
+    <div class="bird"></div>
+    <div class="canoTop"></div>
+    <div class="canoBottom"></div>
+    <div id="gameOverBg"></div>
+    <div id="score">0</div>
+    <div id="gameOver" class="game-over">Você morreu :D <br>
+      <button id="again" onclick="location.reload()">Jogar novamente</button>
+    </div>
+
+    <div id="instructions">
+      <h2 id="titleInstructions">Instruções</h2>
+      <p id="textInstructions">Pressione a barra de espaço para fazer o pássaro voar. Evite os canos para não morrer!</p>
+    </div>
+
+    <script>
+      let primeiroCano = true;
+      let canoB1 = document.querySelector(".canoBottom");
+      let canoT1 = document.querySelector(".canoTop");
+      let gameOverDiv = document.querySelector("#gameOver");
+      let score = document.getElementById("score");
+
+      let bird = document.querySelector(".bird");
+      let posY = window.innerHeight / 2;
+      let posX = window.innerWidth;
+      let posX_inicial = window.innerWidth;
+      
+      let velocidade = 0;
+      let gravidade = 0.5;
+      let angulo = 0;
+      let mov = 10;
+      let primeiro = false;
+      let gameOver = false; /* começa falso */
+      let animationId;
+      let scoreTrueFalse = true
+
+      setTimeout(() => {
+        document.getElementById("instructions").style.display = "none";
+      }, 6000); /* 6000ms = 6 segundos aparecendo instructions */
+
+      function loop() {
+        // aqui é a gravidade
+        if (gameOver) {
+          return
+        }; /* pra parar o resto se morrer :D */
+        velocidade += gravidade;
+        posY += velocidade;
+
+        // aqui é para o birdo não cair da tela
+        if (posY + 60 > window.innerHeight) {
+          posY = window.innerHeight - 60;
+          velocidade = 0;
+        }
+        // aqui é a mesma coisa só que ao contrario
+        if (posY < 0) {
+          posY = 0;
+          velocidade = 0;
+        }
+        // aqui atualiza a posição e o ângulo do birdo
+        bird.style.transform = `translateY(${posY}px) rotate(${velocidade * 2}deg)`;
+
+        // que cano
+
+        posX -= mov; // diminui a posição x do cano
+
+        // volta o cano quando ele sai pela parede
+        if (posX < -600) { 
+          posX = posX_inicial;
+          primeiro = true;
+          scoreTrueFalse = true
+          primeiroCano = false; // depois que passou o primeiro, ativa colisão normal
+
+          canoB1.style.display = "block";
+          canoT1.style.display = "block";
+        }
+
+        // atulaiza a posição do cano
+        canoB1.style.transform = `translateX(${posX + 200}px)`;
+        canoT1.style.transform = `translateX(${posX + 200}px)`;
+
+        // depois que ele entra na parede sorteia uma posição pseudo aleatória
+        // de 0 a -30 para o cano de baixo e depois soma 90dvh no bottom do cano de cima
+        // assim eles mantém a mesma distância de 90dvh
+        if (primeiro == true) {
+          canoB1.style.bottom = (Math.floor(Math.random() * 30) * -1) + `dvh`
+          canoT1.style.bottom = (Number(canoB1.style.bottom.replace('dvh', '')) + 90) + 'dvh'
+          primeiro = false;
+        }
+        // depois que ele entra na parede sorteia uma posição aleatória
+        if (primeiro == true) {
+          canoB1.style.bottom = (Math.floor(Math.random() * 30) * -1) + `dvh`
+          canoT1.style.bottom = (Number(canoB1.style.bottom.replace('dvh', '')) + 90) + 'dvh'
+          primeiro = false;
+        }
+
+        // iignora colisão do primeiro cano
+        if (primeiroCano) {
+          animationId = requestAnimationFrame(loop);
+          canoB1.style.display = "none";
+          canoT1.style.display = "none";
+          return;
+        }
+
+        /* Detecta de colisão do birdo com cano */
+        let birdLeft = 100;
+        let birdRight = birdLeft + 60;
+        let birdTop = posY;
+        let birdBottom = posY + 60;
+
+        let canoLeft = posX + 200;
+        let canoRight = canoLeft + 200;
+        let canoBottomValue = Number(canoB1.style.bottom.replace('dvh', '')) / 100 * window.innerHeight; /* Converte dvh para px */
+        let canoTopB = window.innerHeight - canoBottomValue - (50 / 100 * window.innerHeight); /* Top do canoBottom */
+        let canoBottomB = window.innerHeight - canoBottomValue;
+
+        /* Colisão com canoBottom */
+        if (birdRight > canoLeft && birdLeft < canoRight && birdBottom > canoTopB && birdTop < canoBottomB) {
+          gameOver = true;
+          gameOverDiv.style.display = 'block'; /* Mostra a tela de Game Over */
+          gameOverBirdoAnimation()
+          cancelAnimationFrame(animationId); /* Para loop */
+        }
+
+        /* Colisão com o ::before do canoBottom */
+        let capHeight = (5 / 100) * window.innerHeight;
+        let capTopB = canoTopB - capHeight;
+        let capBottomB = canoTopB;
+        let capLeftB = canoLeft - 25;
+        let capRightB = canoRight + 25;
+        if (birdRight > capLeftB && birdLeft < capRightB && birdBottom > capTopB && birdTop < capBottomB) {
+          gameOver = true;
+          gameOverDiv.style.display = 'block';
+          gameOverBirdoAnimation()
+          cancelAnimationFrame(animationId);
+        }
+
+        /* Colisão com canoTop */
+        let canoTBottomValue = Number(canoT1.style.bottom.replace('dvh', '')) / 100 * window.innerHeight;
+        let canoTopT = window.innerHeight - canoTBottomValue - (50 / 100 * window.innerHeight); /* Top do canoTop */
+        let canoBottomT = window.innerHeight - canoTBottomValue;
+        if (birdRight > canoLeft && birdLeft < canoRight && birdBottom > canoTopT && birdTop < canoBottomT) {
+          gameOver = true;
+          gameOverDiv.style.display = 'block';
+          gameOverBirdoAnimation()
+          cancelAnimationFrame(animationId);
+        }
+
+        /* Colisão com o ::before do canoTop */
+        let capTopT = canoBottomT;
+        let capBottomT = canoBottomT + capHeight;
+        let capLeftT = canoLeft - 25;
+        let capRightT = canoRight + 25;
+        if (birdRight > capLeftT && birdLeft < capRightT && birdBottom > capTopT && birdTop < capBottomT) {
+          gameOver = true;
+          gameOverDiv.style.display = 'block';
+          gameOverBirdoAnimation()
+          cancelAnimationFrame(animationId);
+        }
+
+        //score
+        if(canoLeft < birdLeft && scoreTrueFalse == true){
+          score.innerHTML = Number(score.innerHTML) + 1
+          scoreTrueFalse = false
+        }
+
+        // chama o loop nessa função que simula uma animação
+        animationId = requestAnimationFrame(loop);
+      }
+
+      loop();
+
+      function gameOverBirdoAnimation(){
+        document.documentElement.style.setProperty('--posicaoY', posY + 'px')
+        document.documentElement.style.setProperty('--posicaoYFinal', window.innerHeight + 'px')
+        bird.style.animation = 'gameOverBirdo 1s ease-in forwards';
+        document.documentElement.style.animation = 'tremor 0.3s linear forwards';
+        gameOverBg.style.animation = 'gameOverBg 0.3s ease-in-out forwards';
+      }
+
+      // pulo do birdo
+      document.addEventListener("keydown", (seta) => {
+        if (seta.key === " " && !gameOver) { /* !gameOver */
+          velocidade = 0;
+          velocidade -= 12;
+        }
+      });
+    </script>
+  </body>
+</html>
